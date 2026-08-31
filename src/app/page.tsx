@@ -1,3 +1,4 @@
+import Link from "next/link";
 import NodeSearch from "@/components/NodeSearch";
 
 export default function Home() {
@@ -12,6 +13,9 @@ export default function Home() {
         </p>
       </div>
       <NodeSearch />
+      <Link href="/match" className="text-sm text-amber-600 hover:underline">
+        Looking for someone&apos;s node by their Nostr identity? →
+      </Link>
     </div>
   );
 }

@@ -185,6 +185,114 @@ const GET_NODE_QUERY = `
   }
 `;
 
+export interface NetworkStatsTrendPoint {
+  date: string;
+  activeNodes: number;
+  activeChannels: number;
+  capacity: number;
+}
+
+export interface NetworkStats {
+  totalNodes: number;
+  activeNodes: number;
+  totalChannels: number;
+  totalCapacity: string;
+  /** Daily trend for the trailing window. Empty if Amboss has no history yet. */
+  trend: NetworkStatsTrendPoint[];
+}
+
+interface GetNetworkStatsResponse {
+  getNetworkMetrics: {
+    historical_snapshots: {
+      nodes: { active: number; total: number };
+      channels: { channel_metrics: { sum: string; count: string } };
+    };
+    nodesSeries: [string, string][];
+    channelsSeries: [string, string][];
+    capacitySeries: [string, string][];
+  };
+}
+
+const GET_NETWORK_STATS_QUERY = `
+  query NetworkStats($from: String!) {
+    getNetworkMetrics {
+      historical_snapshots(timeRange: TODAY) {
+        nodes {
+          active
+          total
+        }
+        channels {
+          channel_metrics {
+            sum
+            count
+          }
+        }
+      }
+      nodesSeries: historical_series(from: $from, metric: active_nodes)
+      channelsSeries: historical_series(from: $from, metric: active_channels)
+      capacitySeries: historical_series(
+        from: $from
+        metric: channel_metrics
+        submetric: sum
+      )
+    }
+  }
+`;
+
+const TREND_WINDOW_DAYS = 30;
+
+function daysAgoISODate(days: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+// Amboss returns each series as hourly [timestamp, value] pairs, newest
+// first. Keep one (the most recent) sample per calendar day so the trend
+// chart shows a clean daily line instead of hundreds of hourly points.
+function latestPerDay(series: [string, string][]): Map<string, number> {
+  const byDate = new Map<string, number>();
+  for (const [timestamp, rawValue] of series) {
+    const date = timestamp.slice(0, 10);
+    const value = Number(rawValue);
+    if (!byDate.has(date) && Number.isFinite(value)) {
+      byDate.set(date, value);
+    }
+  }
+  return byDate;
+}
+
+export async function getNetworkStats(): Promise<NetworkStats> {
+  const data = await ambossRequest<GetNetworkStatsResponse>(
+    GET_NETWORK_STATS_QUERY,
+    { from: daysAgoISODate(TREND_WINDOW_DAYS) }
+  );
+
+  const metrics = data.getNetworkMetrics;
+  const snapshot = metrics.historical_snapshots;
+  const nodesByDate = latestPerDay(metrics.nodesSeries);
+  const channelsByDate = latestPerDay(metrics.channelsSeries);
+  const capacityByDate = latestPerDay(metrics.capacitySeries);
+
+  const trend: NetworkStatsTrendPoint[] = [...nodesByDate.keys()]
+    .filter((date) => channelsByDate.has(date) && capacityByDate.has(date))
+    .sort()
+    .map((date) => ({
+      date,
+      activeNodes: nodesByDate.get(date)!,
+      activeChannels: channelsByDate.get(date)!,
+      capacity: capacityByDate.get(date)!,
+    }));
+
+  return {
+    totalNodes: snapshot.nodes.total,
+    activeNodes: snapshot.nodes.active,
+    totalChannels: Number(snapshot.channels.channel_metrics.count),
+    totalCapacity: snapshot.channels.channel_metrics.sum,
+    trend,
+  };
+}
+
 export async function getNode(pubkey: string): Promise<NodeDetail | null> {
   let data: GetNodeResponse;
   try {

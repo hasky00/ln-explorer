@@ -1,27 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getNode } from "@/lib/amboss";
-
-const SATS_PER_BTC = 100_000_000;
-
-function formatCapacity(sats: string | null): string {
-  if (sats === null) return "Unknown";
-  const btc = Number(sats) / SATS_PER_BTC;
-  return `${btc.toLocaleString(undefined, { maximumFractionDigits: 2 })} BTC`;
-}
+import { formatCapacity } from "@/lib/format";
+import StatCard from "@/components/StatCard";
 
 function formatPercent(value: string | null): string {
   if (value === null) return "No data";
   return `${(Number(value) * 100).toFixed(1)}%`;
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-black/[.08] bg-white p-4 dark:border-white/[.145] dark:bg-zinc-900">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-    </div>
-  );
 }
 
 export default async function NodePage({

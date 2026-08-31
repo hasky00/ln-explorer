@@ -13,9 +13,14 @@ export default function Home() {
         </p>
       </div>
       <NodeSearch />
-      <Link href="/match" className="text-sm text-amber-600 hover:underline">
-        Looking for someone&apos;s node by their Nostr identity? →
-      </Link>
+      <div className="flex flex-col items-center gap-2">
+        <Link href="/match" className="text-sm text-amber-600 hover:underline">
+          Looking for someone&apos;s node by their Nostr identity? →
+        </Link>
+        <Link href="/stats" className="text-sm text-amber-600 hover:underline">
+          View network stats →
+        </Link>
+      </div>
     </div>
   );
 }

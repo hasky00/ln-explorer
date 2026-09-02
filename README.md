@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LN Explorer
 
-## Getting Started
+A Lightning Network explorer that exposes its core lookups as **WebMCP tools**, so an
+in-browser AI agent can query the Lightning Network directly instead of scraping the page.
 
-First, run the development server:
+**Live:** https://ln-explorer-hasky.netlify.app
+
+## Why WebMCP
+
+Block explorers are built for humans: you search, you read a table, you click through to a
+node page. An agent asked "which Lightning nodes does ACINQ run, and how much capacity do
+they have?" has to load that UI and scrape it — brittle, and it breaks the moment the
+markup changes.
+
+LN Explorer registers its three lookups as real tools via `document.modelContext`. An agent
+in a WebMCP-capable browser discovers them on page load and calls them with structured
+arguments, getting back structured JSON. Same data the UI renders, no scraping.
+
+## WebMCP tools
+
+Registered in [`src/components/WebMcpTools.tsx`](src/components/WebMcpTools.tsx), mounted
+once from the root layout. All three are read-only (`readOnlyHint: true`).
+
+| Tool | Input | Returns |
+| --- | --- | --- |
+| `searchNode` | `query` — alias (partial ok) or full pubkey | Matching nodes with alias, pubkey, capacity, channel count |
+| `getNodeDetail` | `pubkey` — full node public key | Alias, capacity, channels, ranks, uptime, linked Nostr / lightning-address socials |
+| `getNetworkStats` | — | Total and active node counts, channel count, total capacity in sats |
+
+Each backs onto a route under `src/app/api/`, so the same data is reachable over plain HTTP
+(`/api/search?q=acinq`, `/api/node/<pubkey>`, `/api/stats`).
+
+## Trying the tools
+
+WebMCP is experimental. You need either ChatGPT's in-app browser or Chrome with WebMCP
+enabled at `chrome://flags/#enable-webmcp-testing`. Then open the live site (or a local
+dev server) and ask the agent something like *"use the page's tools to look up ACINQ's
+Lightning node and tell me its capacity."*
+
+Registration is feature-detected — in a browser without `document.modelContext` the
+component is a no-op and the site works as an ordinary explorer.
+
+## Running locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+No configuration is required. Data comes from the [Amboss](https://amboss.space) GraphQL
+API, whose search, node and network-metrics queries are public.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Optional: Amboss API key
 
-## Learn More
+Set `AMBOSS_API_KEY` to send an authenticated Amboss request. Nothing in this project needs
+it — it exists only for account-scoped queries, which none of these routes use. Copy
+`.env.example` to `.env.local` if you want to set one.
 
-To learn more about Next.js, take a look at the following resources:
+## Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Node search** — fuzzy alias or exact pubkey lookup
+- **Node detail** — capacity, channels, ranks, uptime, and linked socials
+- **Network stats** — live totals plus a capacity and node-count trend
+- **Nostr × Lightning matcher** — resolves Nostr identities to Lightning nodes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stack
 
-## Deploy on Vercel
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · deployed on Netlify
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](LICENSE).

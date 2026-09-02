@@ -8,6 +8,17 @@ interface ModelContextToolAnnotations {
   untrustedContentHint?: boolean;
 }
 
+interface ModelContextTextContent {
+  type: "text";
+  text: string;
+}
+
+// MCP CallToolResult: what a tool's execute() must resolve to.
+interface ModelContextToolResult {
+  content: ModelContextTextContent[];
+  isError?: boolean;
+}
+
 interface ModelContextTool {
   name: string;
   description: string;
@@ -17,7 +28,7 @@ interface ModelContextTool {
   execute: (
     input: Record<string, unknown>,
     options?: { signal?: AbortSignal }
-  ) => Promise<unknown>;
+  ) => Promise<ModelContextToolResult>;
 }
 
 interface ModelContextRegisterToolOptions {

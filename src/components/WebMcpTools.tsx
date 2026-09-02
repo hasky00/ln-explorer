@@ -13,6 +13,16 @@ async function fetchJson(url: string): Promise<unknown> {
   return json;
 }
 
+// The spec expects a tool to resolve to an MCP CallToolResult — an object with
+// a `content` array — not a bare value. Chrome's current implementation is
+// lenient about this, but returning the canonical shape keeps the tools working
+// across agents and future spec revisions.
+function toolResult(value: unknown): ModelContextToolResult {
+  return {
+    content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
+  };
+}
+
 // Exposes LN Explorer's core lookups as WebMCP tools so an in-browser AI
 // agent can call them directly, via document.modelContext.registerTool.
 // Spec: https://webmachinelearning.github.io/webmcp/ (experimental — Chrome
@@ -46,7 +56,7 @@ export default function WebMcpTools() {
           const data = (await fetchJson(
             `/api/search?q=${encodeURIComponent(query)}`
           )) as { results: unknown[] };
-          return data.results;
+          return toolResult(data.results);
         },
       },
       { signal: controller.signal }
@@ -70,7 +80,9 @@ export default function WebMcpTools() {
         annotations: { readOnlyHint: true },
         execute: async (input) => {
           const pubkey = String(input.pubkey ?? "");
-          return fetchJson(`/api/node/${encodeURIComponent(pubkey)}`);
+          return toolResult(
+            await fetchJson(`/api/node/${encodeURIComponent(pubkey)}`)
+          );
         },
       },
       { signal: controller.signal }
@@ -82,7 +94,7 @@ export default function WebMcpTools() {
         description:
           "Get aggregate Lightning Network stats: total and active node counts, total channel count, and total network capacity in sats.",
         annotations: { readOnlyHint: true },
-        execute: async () => fetchJson("/api/stats"),
+        execute: async () => toolResult(await fetchJson("/api/stats")),
       },
       { signal: controller.signal }
     );

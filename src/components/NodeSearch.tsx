@@ -11,11 +11,15 @@ function formatCapacity(sats: string): string {
   return `${btc.toLocaleString(undefined, { maximumFractionDigits: 2 })} BTC`;
 }
 
-export default function NodeSearch() {
+export default function NodeSearch({
+  initialQuery = "",
+}: {
+  initialQuery?: string;
+}) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchNode[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialQuery.trim() !== "");
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -24,10 +28,12 @@ export default function NodeSearch() {
 
     const trimmed = query.trim();
     if (!trimmed) {
+      window.history.replaceState(null, "", "/");
       return;
     }
 
     debounceRef.current = setTimeout(async () => {
+      window.history.replaceState(null, "", `/?q=${encodeURIComponent(trimmed)}`);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
         const data = await res.json();

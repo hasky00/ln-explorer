@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LN Explorer",
   description: "A Lightning Network explorer for the Nostr community.",
+  alternates: {
+    types: {
+      "application/opensearchdescription+xml": [
+        { url: "/opensearch.xml", title: "E-light" },
+      ],
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

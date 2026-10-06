@@ -1,0 +1,8 @@
+node_modules
+.next
+.netlify
+.git
+.env*
+!.env.example
+tsconfig.tsbuildinfo
+*.md

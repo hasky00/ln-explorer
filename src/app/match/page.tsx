@@ -1,7 +1,14 @@
 import Link from "next/link";
 import NostrMatcher from "@/components/NostrMatcher";
 
-export default function MatchPage() {
+export default async function MatchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { q } = await searchParams;
+  const initialQuery = typeof q === "string" ? q : "";
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-zinc-50 px-6 py-32 dark:bg-black">
       <Link href="/" className="text-sm text-amber-600 hover:underline">
@@ -17,7 +24,7 @@ export default function MatchPage() {
           not every profile resolves to a node.
         </p>
       </div>
-      <NostrMatcher />
+      <NostrMatcher initialQuery={initialQuery} />
     </div>
   );
 }

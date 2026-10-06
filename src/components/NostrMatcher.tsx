@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { MatchResult } from "@/app/api/match/route";
 
@@ -12,11 +12,22 @@ function formatCapacity(sats: string | null): string {
   return `${btc.toLocaleString(undefined, { maximumFractionDigits: 2 })} BTC`;
 }
 
-export default function NostrMatcher() {
-  const [query, setQuery] = useState("");
+export default function NostrMatcher({
+  initialQuery = "",
+}: {
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MatchResult | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Arriving with ?q= (e.g. from a search result) runs the match right away.
+  useEffect(() => {
+    if (initialQuery.trim()) formRef.current?.requestSubmit();
+  }, [initialQuery]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +52,7 @@ export default function NostrMatcher() {
 
   return (
     <div className="w-full max-w-xl">
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form ref={formRef} onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
           value={query}

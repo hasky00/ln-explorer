@@ -1,11 +1,87 @@
-# LN Explorer
+# E-light (LN Explorer)
 
-A Lightning Network explorer that exposes its core lookups as **WebMCP tools**, so an
-in-browser AI agent can query the Lightning Network directly instead of scraping the page.
+Ask the Bitcoin Lightning Network a question out loud and get a spoken answer.
+
+E-light is a Lightning Network explorer with a **remote MCP server** (Streamable HTTP,
+MCP spec 2025-11-25) that voice assistants like **Alexa+** can connect to, plus a
+simulated Alexa+ voice experience you can try in the browser.
 
 **Live:** https://ln-explorer-hasky.netlify.app
+**Try the voice experience:** https://ln-explorer-hasky.netlify.app/ask
+**MCP endpoint:** `https://ln-explorer-hasky.netlify.app/api/mcp`
 
-## Why WebMCP
+## Why voice + Lightning
+
+The Lightning Network is public, but its data lives in block-explorer tables built for
+experts. People actually ask simple questions: *"How big is Lightning right now?"*,
+*"Is ACINQ's node reliable?"*, *"Which node receives payments for this Nostr account?"*
+
+E-light answers those in one spoken sentence. Every tool returns a voice-ready answer
+(rounded numbers, no emoji, no hex strings) for the assistant to read aloud, plus the full
+structured data for agents that want to reason further.
+
+## MCP server (Alexa+ track)
+
+[`src/app/api/mcp/route.ts`](src/app/api/mcp/route.ts) serves the MCP server built in
+[`src/lib/mcp-server.ts`](src/lib/mcp-server.ts) with the official
+`@modelcontextprotocol/sdk`. It is stateless (a fresh server per request), which suits
+serverless hosting, and every tool is read-only.
+
+| Tool | Input | Spoken answer example |
+| --- | --- | --- |
+| `search_nodes` | `query` — node name or pubkey | "The best match is ACINQ, with 360 bitcoin of capacity across 1,929 channels." |
+| `get_node_details` | `pubkey` — 66-char hex | "ACINQ has 364 bitcoin of capacity across 1,931 channels. It ranks number 2 by capacity." |
+| `get_network_stats` | — | "The Lightning Network has 13,610 active nodes and 34,841 channels, holding 3,666 bitcoin in total." |
+| `find_node_for_nostr_profile` | `identifier` — npub or NIP-05 | "hasky uses the lightning address hasky@primal.net, but it doesn't reveal which node receives the payments." |
+
+`find_node_for_nostr_profile` is the unusual one: it follows a Nostr identity to its
+lightning address (`lud16`), resolves the LNURL-pay endpoint, extracts the receiving node
+and looks it up, connecting a social identity to its payment infrastructure.
+
+### Connect an MCP client
+
+Any MCP client that supports Streamable HTTP can connect, for example Claude Code:
+
+```bash
+claude mcp add --transport http e-light https://ln-explorer-hasky.netlify.app/api/mcp
+```
+
+Or call it directly:
+
+```bash
+curl -s https://ln-explorer-hasky.netlify.app/api/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_network_stats","arguments":{}}}'
+```
+
+## Ask E-light: simulated Alexa+ experience
+
+[`/ask`](https://ln-explorer-hasky.netlify.app/ask) behaves like an Alexa+ conversation:
+
+1. Tap the E and speak (Web Speech API), or type, or tap an example.
+2. [`/api/ask`](src/app/api/ask/route.ts) acts as an **MCP client** of E-light's own
+   `/api/mcp` server over Streamable HTTP, exactly the way Alexa+ connects.
+   [`ask-router.ts`](src/lib/ask-router.ts) picks the tool, and a name search is
+   followed by a details lookup, like an assistant chaining tools.
+3. The answer is read aloud with the most natural voice the device offers. The
+   "MCP calls" panel shows which tools ran.
+
+Works in Chrome and Safari (desktop and iPhone). On iPhone, downloading the free
+"Ava (Premium)" voice in Settings → Accessibility → Spoken Content makes it sound best.
+
+## Built during the Amazon Developer Hackathon
+
+E-light existed before as a web explorer with in-browser WebMCP tools. During the
+hackathon window I added:
+
+- The remote MCP server (`/api/mcp`) with four voice-first tools
+- The Nostr → Lightning node tool, with matching logic shared with the website
+  ([`src/lib/match.ts`](src/lib/match.ts))
+- The Ask E-light voice experience (`/ask`, `/api/ask`)
+- iPhone speech fixes and natural-voice selection
+
+## WebMCP tools (in-browser agents)
 
 Block explorers are built for humans: you search, you read a table, you click through to a
 node page. An agent asked "which Lightning nodes does ACINQ run, and how much capacity do

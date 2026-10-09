@@ -51,6 +51,19 @@ function getRecognitionCtor(): RecognitionCtor | null {
 
 const noopSubscribe = () => () => {};
 
+// iOS Safari (and some Chrome builds) only allow speech that starts inside a
+// tap. Our answer arrives later, after a network call, so we "unlock" the
+// speech engine with a silent utterance during the tap itself.
+function unlockSpeech() {
+  const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+  if (!synth) return;
+  synth.cancel(); // stop any previous answer
+  const silent = new SpeechSynthesisUtterance(" ");
+  silent.volume = 0;
+  synth.speak(silent);
+  synth.resume();
+}
+
 export default function VoiceAsk() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [interim, setInterim] = useState("");
@@ -69,7 +82,6 @@ export default function VoiceAsk() {
       setPhase("idle");
       return;
     }
-    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
     utterance.rate = 1.02;
@@ -83,6 +95,7 @@ export default function VoiceAsk() {
     async (question: string) => {
       const q = question.trim();
       if (!q) return;
+      unlockSpeech(); // must run before the first await
       setInterim("");
       setPhase("thinking");
       try {
@@ -110,7 +123,7 @@ export default function VoiceAsk() {
       recognitionRef.current?.stop();
       return;
     }
-    window.speechSynthesis?.cancel();
+    unlockSpeech();
 
     const rec = new Ctor();
     rec.lang = "en-US";

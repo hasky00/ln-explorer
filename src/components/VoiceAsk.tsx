@@ -51,6 +51,31 @@ function getRecognitionCtor(): RecognitionCtor | null {
 
 const noopSubscribe = () => () => {};
 
+// Browsers default to their most robotic voice. Prefer the natural-sounding
+// ones when the device has them (Apple premium/enhanced, Edge "Natural",
+// Chrome's Google voices), falling back to any US English voice.
+const VOICE_PREFERENCES = [
+  /premium/i,
+  /enhanced/i,
+  /natural/i,
+  /^(ava|zoe|evan|nathan|joelle|noelle)\b/i,
+  /google us english/i,
+  /^samantha/i,
+];
+
+function pickVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.replace("_", "-").toLowerCase().startsWith("en"));
+  if (voices.length === 0) return null;
+  const us = voices.filter((v) => /en-us/i.test(v.lang.replace("_", "-")));
+  for (const pattern of VOICE_PREFERENCES) {
+    const match = us.find((v) => pattern.test(v.name)) ?? voices.find((v) => pattern.test(v.name));
+    if (match) return match;
+  }
+  return us[0] ?? voices[0];
+}
+
 // iOS Safari (and some Chrome builds) only allow speech that starts inside a
 // tap. Our answer arrives later, after a network call, so we "unlock" the
 // speech engine with a silent utterance during the tap itself.
@@ -83,8 +108,10 @@ export default function VoiceAsk() {
       return;
     }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 1.02;
+    const voice = pickVoice();
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang ?? "en-US";
+    utterance.rate = 1;
     utterance.onend = () => setPhase("idle");
     utterance.onerror = () => setPhase("idle");
     setPhase("speaking");

@@ -19,7 +19,12 @@ function spokenCount(n: number | null): string {
 }
 
 function nodeName(alias: string | null, pubkey: string): string {
-  return alias?.trim() || `an unnamed node starting ${pubkey.slice(0, 8)}`;
+  // Many aliases carry emoji ("Kraken 🐙⚡"); a voice would read them aloud.
+  const clean = alias
+    ?.replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}‍️]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean || `an unnamed node starting ${pubkey.slice(0, 8)}`;
 }
 
 // Every tool returns a one-or-two sentence spoken answer in `content`, and the

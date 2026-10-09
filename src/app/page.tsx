@@ -23,6 +23,9 @@ export default async function Home({
           <Link href="/stats" className="text-amber-600 hover:underline">
             Network stats
           </Link>
+          <Link href="/ask" className="text-amber-600 hover:underline">
+            Ask by voice
+          </Link>
         </div>
       </div>
       <UniversalSearch initialQuery={initialQuery} />

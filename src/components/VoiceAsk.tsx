@@ -37,7 +37,7 @@ const EXAMPLES = [
   "How big is the Lightning Network?",
   "Tell me about ACINQ",
   "Look up Kraken",
-  "Which node is behind jack@primal.net?",
+  "Which node is behind erna@getalby.com?",
 ];
 
 function getRecognitionCtor(): RecognitionCtor | null {

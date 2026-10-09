@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchNostrProfile, type NostrProfile } from "@/lib/nostr";
-import { resolveLightningAddress, extractNodePubkey } from "@/lib/lnurl";
-import { getNode, type NodeDetail } from "@/lib/amboss";
+import { matchNostrToNode, type MatchResult } from "@/lib/match";
 
-export type MatchResult =
-  | { status: "no_profile" }
-  | { status: "no_lightning_address"; profile: NostrProfile }
-  | {
-      status: "unresolvable_address";
-      profile: NostrProfile;
-      lightningAddress: string;
-    }
-  | {
-      status: "matched";
-      profile: NostrProfile;
-      lightningAddress: string;
-      node: NodeDetail;
-    };
+export type { MatchResult };
 
 export async function GET(request: NextRequest) {
   const identifier = request.nextUrl.searchParams.get("q")?.trim() ?? "";
@@ -27,31 +12,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let result: MatchResult;
   try {
-    const profile = await fetchNostrProfile(identifier);
-    if (!profile) {
-      result = { status: "no_profile" };
-    } else {
-      const lightningAddress = profile.lud16;
-      if (!lightningAddress) {
-        result = { status: "no_lightning_address", profile };
-      } else {
-        const lnurl = await resolveLightningAddress(lightningAddress);
-        const nodePubkey = lnurl ? extractNodePubkey(lnurl) : null;
-        const node = nodePubkey ? await getNode(nodePubkey) : null;
-
-        result = node
-          ? { status: "matched", profile, lightningAddress, node }
-          : { status: "unresolvable_address", profile, lightningAddress };
-      }
-    }
+    return NextResponse.json(await matchNostrToNode(identifier));
   } catch {
     return NextResponse.json(
       { error: "Matching failed. Try again in a moment." },
       { status: 502 }
     );
   }
-
-  return NextResponse.json(result);
 }

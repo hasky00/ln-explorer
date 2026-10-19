@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import VoiceAsk from "@/components/VoiceAsk";
 
+const ASK_TITLE = "Ask E-light: talk to the Lightning Network";
+const ASK_DESCRIPTION =
+  "Tap, ask out loud, and hear the answer. Try: \"How big is the Lightning Network?\" or \"Tell me about ACINQ\". Powered by E-light's MCP server for Alexa+.";
+
 export const metadata: Metadata = {
-  title: "Ask E-light",
-  description: "Ask the Lightning Network out loud. A simulated Alexa+ experience powered by E-light's MCP server.",
+  title: ASK_TITLE,
+  description: ASK_DESCRIPTION,
+  openGraph: { title: ASK_TITLE, description: ASK_DESCRIPTION, url: "/ask", siteName: "E-light", type: "website" },
+  twitter: { card: "summary_large_image", title: ASK_TITLE, description: ASK_DESCRIPTION },
 };
 
 export default function AskPage() {

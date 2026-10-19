@@ -54,7 +54,44 @@ function methodNotAllowed() {
   );
 }
 
-export const GET = methodNotAllowed;
+// A person clicking the endpoint link in a browser gets a short explanation
+// page; MCP clients (which never ask for text/html) still get the 405 above.
+const HUMAN_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E-light MCP server</title>
+<style>
+body{margin:0;background:#0a0a0a;color:#ededed;font:16px/1.6 system-ui,-apple-system,sans-serif}
+main{max-width:640px;margin:0 auto;padding:56px 20px}
+h1{color:#fbbf24;font-size:28px;margin:0 0 8px}
+code{background:#1c1c1c;padding:2px 6px;border-radius:4px;font-size:14px;word-break:break-all}
+a{color:#fbbf24}
+li{margin:4px 0}
+footer{margin-top:48px;color:#777;font-size:12px}
+</style></head><body><main>
+<h1>E-light MCP server</h1>
+<p>This address is for AI assistants, not browsers. Alexa+, Claude and other MCP clients connect here to ask the Lightning Network questions.</p>
+<p><strong>Want to try it yourself?</strong> Open <a href="/ask">Ask E-light</a>, tap the E and ask "How big is the Lightning Network?"</p>
+<h2 style="font-size:18px">For developers</h2>
+<ul>
+<li>Endpoint: <code>https://ln-explorer-hasky.netlify.app/api/mcp</code></li>
+<li>Transport: Streamable HTTP, MCP spec 2025-11-25 (POST)</li>
+<li>Tools: <code>search_nodes</code>, <code>get_node_details</code>, <code>get_network_stats</code>, <code>find_node_for_nostr_profile</code></li>
+<li>Claude Code: <code>claude mcp add --transport http e-light https://ln-explorer-hasky.netlify.app/api/mcp</code></li>
+<li>Source: <a href="https://github.com/hasky00/ln-explorer">github.com/hasky00/ln-explorer</a></li>
+</ul>
+<footer>&copy; ${new Date().getFullYear()} Hasky Labs, Copenhagen. All rights reserved. Made by Hasky Labs.</footer>
+</main></body></html>`;
+
+export function GET(request: Request) {
+  const accept = request.headers.get("accept") ?? "";
+  if (accept.includes("text/html") && !accept.includes("text/event-stream")) {
+    return new Response(HUMAN_PAGE, {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+  return methodNotAllowed();
+}
+
 export const DELETE = methodNotAllowed;
 
 export function OPTIONS() {
